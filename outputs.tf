@@ -1,6 +1,6 @@
 output "catalog" {
   description = "Airflow Variable cbs_catalog."
-  value       = chameleon_workspace.cbs.primary_catalog
+  value       = local.cbs.primary_catalog
 }
 
 output "dbt_project_id" {
@@ -20,7 +20,7 @@ output "airflow_connection" {
     extra = {
       auth_type           = "service_principal"
       keycloak_issuer_url = "http://keycloak-http.keycloak:8080/realms/chameleon"
-      workspace           = chameleon_workspace.cbs.slug
+      workspace           = local.cbs.slug
     }
   })
 }

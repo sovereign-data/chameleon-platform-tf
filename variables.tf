@@ -1,12 +1,26 @@
-variable "workspace_slug" {
-  type    = string
-  default = "cbs-energy"
+# Who is in which workspace. Terraform fills the Keycloak groups
+# ws-<slug>-admins / ws-<slug>-members that the platform authorizes on.
+# With Okta, people move to Okta groups instead (docs/identity.md); keep only
+# break-glass local accounts here.
+variable "workspaces" {
+  type = map(object({
+    display_name = string
+    description  = optional(string, "")
+    admins       = optional(list(string), [])
+    members      = optional(list(string), [])
+  }))
+  default = {
+    cbs-energy = {
+      display_name = "CBS energy (open data)"
+      description  = "Dutch dwelling energy use x consumer tariffs — dlt + dbt + Airflow demo."
+    }
+  }
 }
 
-variable "workspace_members" {
-  description = "Keycloak usernames added as workspace members."
-  type        = list(string)
-  default     = []
+variable "cbs_workspace" {
+  description = "Key in var.workspaces that hosts the CBS demo workload."
+  type        = string
+  default     = "cbs-energy"
 }
 
 variable "landing_bucket" {

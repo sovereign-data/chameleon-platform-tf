@@ -1,14 +1,36 @@
 # One workspace = one catalog (ws_<slug>) + ws-<slug>-{admins,members} groups.
-resource "chameleon_workspace" "cbs" {
-  slug         = var.workspace_slug
-  display_name = "CBS energy (open data)"
-  description  = "Dutch dwelling energy use x consumer tariffs — dlt + dbt + Airflow demo."
+resource "chameleon_workspace" "ws" {
+  for_each     = var.workspaces
+  slug         = each.key
+  display_name = each.value.display_name
+  description  = each.value.description
 }
 
-resource "chameleon_workspace_member" "members" {
-  for_each       = toset(var.workspace_members)
-  workspace_slug = chameleon_workspace.cbs.slug
-  username       = each.value
+moved {
+  from = chameleon_workspace.cbs
+  to   = chameleon_workspace.ws["cbs-energy"]
+}
+
+locals {
+  memberships = merge([for slug, ws in var.workspaces : {
+    for u in ws.members : "${slug}/${u}" => { slug = slug, username = u }
+  }]...)
+  admins = merge([for slug, ws in var.workspaces : {
+    for u in ws.admins : "${slug}/${u}" => { slug = slug, username = u }
+  }]...)
+  cbs = chameleon_workspace.ws[var.cbs_workspace]
+}
+
+resource "chameleon_workspace_member" "member" {
+  for_each       = local.memberships
+  workspace_slug = chameleon_workspace.ws[each.value.slug].slug
+  username       = each.value.username
+}
+
+resource "chameleon_workspace_admin" "admin" {
+  for_each       = local.admins
+  workspace_slug = chameleon_workspace.ws[each.value.slug].slug
+  username       = each.value.username
 }
 
 # dlt lands parquet here; dbt bronze reads it with SQE read_parquet().
@@ -22,7 +44,7 @@ resource "chameleon_connection" "github" {
   type           = "github"
   url            = var.dbt_repo_url
   credentials    = var.github_pat
-  workspace_slug = chameleon_workspace.cbs.slug
+  workspace_slug = local.cbs.slug
 }
 
 resource "chameleon_project" "cbs_dbt" {
@@ -32,14 +54,16 @@ resource "chameleon_project" "cbs_dbt" {
   default_branch = "main"
   namespace      = "cbs_gold"
   connection_id  = chameleon_connection.github.id
-  workspace_slug = chameleon_workspace.cbs.slug
+  workspace_slug = local.cbs.slug
 }
 
 # Airflow's identity in this workspace: client_credentials, write on its catalog.
-# Used by both DAG methods (provider API calls and dbt-trino -> SQE).
+# Used by both DAG methods: polaris-frontend-client in aud for the Chameleon
+# API (provider operators), sqe for dbt-trino straight to SQE.
 resource "chameleon_service_principal" "airflow" {
-  name            = "sp-airflow-${var.workspace_slug}"
-  served_catalogs = [chameleon_workspace.cbs.primary_catalog]
+  name            = "sp-airflow-${var.cbs_workspace}"
+  served_catalogs = [local.cbs.primary_catalog]
   mode            = "write"
-  workspace_slug  = chameleon_workspace.cbs.slug
+  workspace_slug  = local.cbs.slug
+  audience        = ["sqe", "account", "polaris-frontend-client"]
 }

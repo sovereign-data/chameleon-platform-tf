@@ -6,10 +6,27 @@ workloads need:
 
 | Resource | For |
 |---|---|
-| `chameleon_workspace.cbs` | catalog `ws_cbs_energy`, groups `ws-cbs-energy-{admins,members}` |
+| `chameleon_workspace.ws[*]` + `chameleon_workspace_{admin,member}` | one per `var.workspaces` entry: catalog `ws_<slug>`, groups `ws-<slug>-{admins,members}` filled from the lists |
 | `chameleon_storage_bucket.landing` | dlt landing bucket `cbs-landing` |
 | `chameleon_connection.github` + `chameleon_project.cbs_dbt` | backend-run dbt (method B) from `chameleon-cbs-dlt-dbt` |
 | `chameleon_service_principal.airflow` | Airflow's client-credentials identity, write on the workspace catalog |
+
+## Who is in which workspace
+
+The platform authorizes on Keycloak groups `ws-<slug>-admins` / `ws-<slug>-members`
+(token `groups` claim). Edit `var.workspaces` (see `example.tfvars`) and open a PR —
+that is the whole process:
+
+```hcl
+workspaces = {
+  cbs-energy = { display_name = "CBS energy", admins = ["alice"], members = ["bob"] }
+}
+```
+
+When Okta is connected, people move to Okta groups `CHM-WS-<slug>-Admins|Members`
+and Keycloak maps them at every login (see the operator's `docs/identity.md`); keep
+only break-glass local accounts in these lists. Service principals are bound to a
+workspace by `workspace_slug`, never by group.
 
 ## Provider
 
