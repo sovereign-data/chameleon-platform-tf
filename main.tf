@@ -23,12 +23,14 @@ locals {
 
 resource "chameleon_workspace_member" "member" {
   for_each       = local.memberships
+  depends_on     = [chameleon_user.demo]
   workspace_slug = chameleon_workspace.ws[each.value.slug].slug
   username       = each.value.username
 }
 
 resource "chameleon_workspace_admin" "admin" {
   for_each       = local.admins
+  depends_on     = [chameleon_user.demo]
   workspace_slug = chameleon_workspace.ws[each.value.slug].slug
   username       = each.value.username
 }

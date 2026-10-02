@@ -1,6 +1,10 @@
 terraform {
   required_version = ">= 1.6"
   required_providers {
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.6"
+    }
     chameleon = {
       # Not on the public registry yet: dev_overrides to a local build, or the
       # GitLab generic package (see README).

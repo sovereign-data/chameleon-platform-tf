@@ -13,6 +13,8 @@ variable "workspaces" {
     cbs-energy = {
       display_name = "CBS energy (open data)"
       description  = "Dutch dwelling energy use x consumer tariffs — dlt + dbt + Airflow demo."
+      admins       = ["anna"]
+      members      = ["bas"]
     }
   }
 }
